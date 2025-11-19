@@ -3,6 +3,7 @@ import os
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 import requests
+from waitress import serve
 
 # Configuration
 LOG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logs')
@@ -88,4 +89,5 @@ def ollama_proxy():
         return jsonify({"error": f"Failed to connect to Ollama: {e}"}), 502
 
 if __name__ == '__main__':
-    app.run(port=5000, debug=True)
+    print("Starting server on http://localhost:8080")
+    serve(app, host='0.0.0.0', port=8080)
