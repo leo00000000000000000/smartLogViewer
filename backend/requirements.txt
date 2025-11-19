@@ -2,3 +2,6 @@ Flask
 flask-cors
 requests
 waitress
+chromadb
+sentence-transformers
+watchdog

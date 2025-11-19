@@ -21,10 +21,13 @@
 
         <!-- Log Directory Configuration -->
         <div class="bg-gray-700 p-3 flex items-center space-x-3 shadow-md">
-            <span class="text-sm font-semibold">Log Directory:</span>
-            <input type="text" id="logDirPath" placeholder="Enter absolute path to log directory" class="flex-1 bg-gray-800 text-white rounded px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <button id="setLogDirButton" class="bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-3 rounded text-sm">Set Directory</button>
+            <button id="browseDirButton" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-1 px-3 rounded text-sm">Set Log Directory</button>
             <span id="currentLogDirDisplay" class="text-xs text-gray-400">Current: Not Set</span>
+        </div>
+
+        <!-- Indexing Status -->
+        <div id="indexingStatus" class="bg-gray-700 p-2 text-xs text-center text-gray-400 hidden">
+            <span>Indexing...</span>
         </div>
 
         <!-- Main Content -->
@@ -56,6 +59,21 @@
             <div class="flex">
                 <input type="text" id="chatInput" placeholder="Ask about the logs..." class="flex-1 bg-gray-700 text-white rounded-l px-4 py-2 focus:outline-none">
                 <button id="chatSendButton" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-r">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Directory Browser Modal -->
+    <div id="dirBrowserModal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center">
+        <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-2/3 h-3/4 flex flex-col">
+            <h3 class="text-lg font-bold mb-4">Browse for Log Directory</h3>
+            <div id="dirBrowserPath" class="bg-gray-900 p-2 rounded mb-4 text-white">/</div>
+            <div id="dirBrowserContent" class="flex-1 overflow-y-auto border border-gray-600 p-2 rounded">
+                <!-- Directory content will be populated here -->
+            </div>
+            <div class="flex justify-end space-x-4 mt-4">
+                <button id="setDirFromBrowserButton" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">Set as Log Directory</button>
+                <button id="closeDirBrowserButton" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Cancel</button>
             </div>
         </div>
     </div>
