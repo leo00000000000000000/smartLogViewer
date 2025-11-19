@@ -1,0 +1,43 @@
+
+/* Custom scrollbar for a more integrated look */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #1f2937; /* bg-gray-800 */
+}
+
+::-webkit-scrollbar-thumb {
+    background: #4b5563; /* bg-gray-600 */
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #6b7280; /* bg-gray-500 */
+}
+
+/* Highlight style for local search */
+.highlight {
+    background-color: #f59e0b; /* amber-500 */
+    color: #1f2937; /* bg-gray-800 */
+}
+
+/* File list item styling */
+#fileList li {
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+#fileList li:hover {
+    background-color: #374151; /* bg-gray-700 */
+}
+
+#fileList li.active {
+    background-color: #4f46e5; /* indigo-600 */
+    color: white;
+    font-weight: bold;
+}

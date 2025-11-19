@@ -1,0 +1,69 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Log Analyst Pro</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-gray-900 text-gray-300 font-mono">
+    <div class="flex flex-col h-screen">
+        <!-- Header -->
+        <header class="bg-gray-800 shadow-lg p-4 flex justify-between items-center">
+            <h1 class="text-xl font-bold text-blue-400">Log Analyst Pro</h1>
+            <div class="flex items-center space-x-4">
+                <input type="text" id="filterInput" placeholder="Filter logs..." class="bg-gray-700 text-white rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="text" id="searchInput" placeholder="Search buffer..." class="bg-gray-700 text-white rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <div class="flex flex-1 overflow-hidden">
+            <!-- File List Panel -->
+            <aside class="w-64 bg-gray-800 p-4 overflow-y-auto">
+                <h2 class="text-lg font-semibold mb-4">Log Files</h2>
+                <ul id="fileList" class="space-y-2">
+                    <!-- File list will be populated here -->
+                </ul>
+            </aside>
+
+            <!-- Log View Panel -->
+            <main class="flex-1 flex flex-col bg-gray-900">
+                <div id="logHeader" class="bg-gray-800 p-2 text-sm">
+                    <span>File: <span id="currentFile" class="font-bold">None</span></span>
+                </div>
+                <div id="logContent" class="flex-1 p-4 overflow-y-auto">
+                    <!-- Log lines will be displayed here -->
+                </div>
+            </main>
+        </div>
+
+        <!-- Chat/Analysis Panel -->
+        <div id="chatPanel" class="bg-gray-800 p-4 h-64 flex flex-col">
+            <div id="chatOutput" class="flex-1 overflow-y-auto mb-4 p-2 bg-gray-700 rounded">
+                <!-- Chat messages will appear here -->
+            </div>
+            <div class="flex">
+                <input type="text" id="chatInput" placeholder="Ask about the logs..." class="flex-1 bg-gray-700 text-white rounded-l px-4 py-2 focus:outline-none">
+                <button id="chatSendButton" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-r">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Modal -->
+    <div id="customModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+        <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-1/3">
+            <h3 id="modalTitle" class="text-lg font-bold mb-4">Modal Title</h3>
+            <p id="modalMessage" class="mb-6">Modal message goes here.</p>
+            <div class="flex justify-end space-x-4">
+                <button id="modalConfirmButton" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Confirm</button>
+                <button id="modalCancelButton" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
