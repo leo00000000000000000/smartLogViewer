@@ -6,8 +6,8 @@ A web-based log viewing tool that uses a local Large Language Model (LLM) for in
 
 The application is implemented with a Python/Flask backend and a simple HTML/CSS/JavaScript frontend.
 
--   **Backend**: A Flask server that serves log files from a `backend/logs` directory and acts as a proxy to an Ollama LLM service.
--   **Frontend**: A single-page application that allows viewing logs, filtering, and interacting with the LLM.
+-   **Backend**: A Flask server that serves log files from a configurable directory and acts as a proxy to an Ollama LLM service. It now uses `waitress` as a production-ready WSGI server.
+-   **Frontend**: A single-page application that allows viewing logs, filtering, and interacting with the LLM. It now includes UI for setting the log directory.
 
 ## How to Run
 
@@ -19,10 +19,17 @@ The application is implemented with a Python/Flask backend and a simple HTML/CSS
 
 ### 2. Installation
 
-1.  **Install Python Dependencies:**
+1.  **Create and activate a Python Virtual Environment (recommended):**
 
     ```bash
-    pip install Flask flask-cors requests
+    python3 -m venv backend/.venv
+    source backend/.venv/bin/activate
+    ```
+
+2.  **Install Python Dependencies:**
+
+    ```bash
+    pip install -r backend/requirements.txt
     ```
 
 ### 3. Running the Application
@@ -30,10 +37,11 @@ The application is implemented with a Python/Flask backend and a simple HTML/CSS
 1.  **Start the Backend Server:**
 
     ```bash
-    python backend/log_server.py
+    source backend/.venv/bin/activate
+    python3 backend/log_server.py
     ```
 
-    The server will start on `http://localhost:5000`.
+    The server will start on `http://localhost:8080`.
 
 2.  **Start the Frontend:**
 
@@ -41,11 +49,12 @@ The application is implemented with a Python/Flask backend and a simple HTML/CSS
 
 ### 4. How to Use
 
-1.  Place your log files in the `backend/logs` directory.
-2.  The available log files will be listed on the left panel.
-3.  Click on a file to view its content.
-4.  Use the "Filter logs" input to filter the log content.
-5.  Use the "Search buffer" to highlight text in the currently displayed log.
-6.  Use the chatbox to interact with the LLM:
+1.  In the browser, set your desired log directory path using the "Log Directory" input field and click "Set Directory".
+2.  Place your log files in the configured directory.
+3.  The available log files will be listed on the left panel.
+4.  Click on a file to view its content.
+5.  Use the "Filter logs" input to filter the log content.
+6.  Use the "Search buffer" to highlight text in the currently displayed log.
+7.  Use the chatbox to interact with the LLM:
     -   To get a general analysis, type your question and press Enter.
     -   To filter using natural language, use the format `filter for: <your description>`. For example: `filter for: all errors`.
