@@ -13,7 +13,7 @@ from watchdog.events import FileSystemEventHandler
 
 # --- Configuration ---
 OLLAMA_API_URL = "http://localhost:11434/api/generate"
-OLLAMA_MODEL_NAME = "codellama:7b-instruct"
+OLLAMA_MODEL_NAME = "deepseek-r1:8b"
 current_log_dir = None
 
 # --- RAG Components ---
@@ -160,7 +160,9 @@ def get_indexing_status():
 @app.route('/api/browse')
 def browse_files():
     """Browses files and directories at a given path."""
-    path = request.args.get('path', os.path.expanduser('~'))
+    path = request.args.get('path')
+    if not path:
+        path = os.path.expanduser('~')
     
     if not os.path.exists(path) or not os.path.isdir(path):
         return jsonify({"error": "Invalid or non-existent directory path."}), 400
@@ -255,11 +257,15 @@ def chat_with_rag():
             "stream": False
         }
         
+        print(f"Sending request to Ollama at {OLLAMA_API_URL} with payload: {ollama_payload}")
         response = requests.post(OLLAMA_API_URL, json=ollama_payload)
         response.raise_for_status()
         ollama_response = response.json()
-        
-        return jsonify({"text": ollama_response.get('response', 'No response text found.')})
+        print(f"Received response from Ollama: {ollama_response}")
+        print(f"Ollama raw response: {ollama_response}") # Debug print
+        response_data = {"text": ollama_response.get('response', 'No response text found.')}
+        print("Returning JSON:", response_data)
+        return jsonify(response_data)
 
     except Exception as e:
         return jsonify({"error": f"RAG chat failed: {e}"}, 500)

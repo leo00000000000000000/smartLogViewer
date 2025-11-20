@@ -1,3 +1,4 @@
+
 document.addEventListener('DOMContentLoaded', () => {
     // --- Main UI Elements ---
     const fileList = document.getElementById('fileList');
@@ -11,6 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const currentLogDirDisplay = document.getElementById('currentLogDirDisplay');
     const indexingStatusDiv = document.getElementById('indexingStatus');
     const browseDirButton = document.getElementById('browseDirButton');
+    const testOllamaButton = document.getElementById('testOllamaButton');
 
     // --- Directory Browser Modal Elements ---
     const dirBrowserModal = document.getElementById('dirBrowserModal');
@@ -23,9 +25,23 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentLogFile = null;
     let logBuffer = [];
 
+    // --- Ollama Status ---
+    testOllamaButton.addEventListener('click', async () => {
+        try {
+            const response = await fetch(`${BACKEND_URL}/api/ollama_status`);
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.status || 'Failed to get Ollama status.');
+            }
+            showModal('Ollama Status', data.status);
+        } catch (error) {
+            showModal('Ollama Status', error.message);
+        }
+    });
+
     // --- Directory Browser Logic ---
     browseDirButton.addEventListener('click', () => {
-        openDirectoryBrowser();
+        openDirectoryBrowser('');
         dirBrowserModal.classList.remove('hidden');
     });
 
@@ -70,6 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 dirEl.textContent = `[${dir}]`;
                 dirEl.addEventListener('click', () => {
                     const newPath = [data.path, dir].join(data.path.endsWith('/') ? '' : '/');
+                    console.log('Navigating to:', newPath);
                     openDirectoryBrowser(newPath);
                 });
                 dirBrowserContent.appendChild(dirEl);
@@ -97,8 +114,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
 
             if (data.status === 'indexing') {
+                const progress = data.total_files > 0 
+                    ? Math.round((data.files_processed / data.total_files) * 100) 
+                    : 0;
                 indexingStatusDiv.classList.remove('hidden');
-                indexingStatusDiv.textContent = `Indexing... (${data.files_processed}/${data.total_files}) - ${data.current_file}`;
+                indexingStatusDiv.textContent = `Indexing... ${progress}% (${data.files_processed}/${data.total_files}) - ${data.current_file}`;
             } else {
                 indexingStatusDiv.classList.add('hidden');
             }
@@ -121,6 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             return data.log_dir;
         } catch (error) {
+            console.log(error);
             currentLogDirDisplay.textContent = 'Current: Error fetching';
             return null;
         }
@@ -247,16 +268,35 @@ document.addEventListener('DOMContentLoaded', () => {
         chatInput.value = '';
 
         try {
-            const response = await fetch(`${BACKEND_URL}/api/chat`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt: userQuery, filename: currentLogFile })
-            });
+            let response;
+            try {
+                response = await fetch(`${BACKEND_URL}/api/chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: userQuery, filename: currentLogFile })
+                });
+            } catch (networkError) {
+                throw new Error(`Network error or server unreachable: ${networkError.message}`);
+            }
+
+            if (!response.ok) {
+                const errorData = await response.text();
+                try {
+                    const jsonData = JSON.parse(errorData);
+                    throw new Error(jsonData.error || `HTTP error! status: ${response.status}`);
+                } catch (e) {
+                    throw new Error(errorData || `HTTP error! status: ${response.status}`);
+                }
+            }
             const data = await response.json();
-            if (!response.ok) throw new Error(data.error || `HTTP error! status: ${response.status}`);
-            addChatMessage('LLM', data.text);
+            if (data.text) {
+                addChatMessage('LLM', data.text);
+            } else {
+                addChatMessage('Error', 'RAG analysis failed: Empty response from server.');
+            }
         } catch (error) {
-            addChatMessage('Error', `RAG analysis failed: ${error.message}`);
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            addChatMessage('Error', `RAG analysis failed: ${errorMessage}`);
         }
     }
     
@@ -281,11 +321,14 @@ document.addEventListener('DOMContentLoaded', () => {
         modalMessage.textContent = message;
         customModal.classList.remove('hidden');
 
-        const newConfirm = modalConfirmButton.cloneNode(true);
-        modalConfirmButton.parentNode.replaceChild(newConfirm, modalConfirmButton);
+        let confirmButton = document.getElementById('modalConfirmButton');
+        let cancelButton = document.getElementById('modalCancelButton');
 
-        const newCancel = modalCancelButton.cloneNode(true);
-        modalCancelButton.parentNode.replaceChild(newCancel, modalCancelButton);
+        const newConfirm = confirmButton.cloneNode(true);
+        confirmButton.parentNode.replaceChild(newConfirm, confirmButton);
+
+        const newCancel = cancelButton.cloneNode(true);
+        cancelButton.parentNode.replaceChild(newCancel, cancelButton);
 
         if (onConfirm) {
             newConfirm.classList.remove('hidden');
