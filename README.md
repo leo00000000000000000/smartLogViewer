@@ -32,7 +32,11 @@ The application is implemented with a Python/Flask backend and a simple HTML/CSS
     pip install -r backend/requirements.txt
     ```
 
-### 3. Running the Application
+### 3. Ollama Configuration
+
+The application is configured to use the `deepseek-r1:8b` model by default. If you want to use a different model, you need to update the `OLLAMA_MODEL_NAME` variable in `backend/log_server.py`.
+
+### 4. Running the Application
 
 1.  **Start the Backend Server:**
 
