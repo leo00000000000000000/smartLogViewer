@@ -266,6 +266,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         addChatMessage('You', userQuery);
         chatInput.value = '';
+        const startTime = Date.now();
 
         try {
             let response;
@@ -289,22 +290,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
             const data = await response.json();
+            const elapsedTime = (Date.now() - startTime) / 1000;
             if (data.text) {
-                addChatMessage('LLM', data.text);
+                addChatMessage('LLM', data.text, elapsedTime);
             } else {
-                addChatMessage('Error', 'RAG analysis failed: Empty response from server.');
+                addChatMessage('Error', 'RAG analysis failed: Empty response from server.', elapsedTime);
             }
         } catch (error) {
+            const elapsedTime = (Date.now() - startTime) / 1000;
             const errorMessage = error instanceof Error ? error.message : String(error);
-            addChatMessage('Error', `RAG analysis failed: ${errorMessage}`);
+            addChatMessage('Error', `RAG analysis failed: ${errorMessage}`, elapsedTime);
         }
     }
     
-    function addChatMessage(sender, message) {
+    function addChatMessage(sender, message, elapsedTime) {
         const messageElement = document.createElement('div');
+        let timeInfo = '';
+        if (elapsedTime !== undefined) {
+            timeInfo = ` <span class="text-xs text-gray-500">(${elapsedTime.toFixed(2)}s)</span>`;
+        }
         messageElement.innerHTML = sender === 'You' 
             ? `<span class="text-blue-400 font-bold">${sender}:</span> ${escapeHTML(message)}`
-            : `<span class="text-green-400 font-bold">${sender}:</span> ${escapeHTML(message)}`;
+            : `<span class="text-green-400 font-bold">${sender}:</span> ${escapeHTML(message)}${timeInfo}`;
         chatOutput.appendChild(messageElement);
         chatOutput.scrollTop = chatOutput.scrollHeight;
     }
