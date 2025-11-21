@@ -1,4 +1,4 @@
-# Log Analyst Pro
+# Log ExplOrer
 
 A web-based log viewing tool that uses a local Large Language Model (LLM) for intelligent log analysis.
 

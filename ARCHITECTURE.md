@@ -1,13 +1,13 @@
-# Log Analyst Pro: System Design Document (v2.1 - Multi-LLM Support)
+# Log ExplOrer: System Design Document (v2.1 - Multi-LLM Support)
 
 **Version:** 2.1
 **Date:** 2025-11-21
-**Authors:** Gemini (Based on User Requirements)
+**Authors:** leoricaborda@gmail.com
 **Status:** Implemented
 
 ## 1. Introduction and Goals
 
-This document outlines the architecture for the Log Analyst Pro, a log analysis tool that leverages a **pluggable Large Language Model (LLM)** backend through a sophisticated **Retrieval-Augmented Generation (RAG)** pipeline. This new architecture enhances the tool's ability to understand and analyze large log files by providing the LLM with the most relevant context, while also offering the flexibility to switch between a local LLM (Ollama) and a powerful cloud-based LLM (Google Gemini).
+This document outlines the architecture for the Log ExplOrer, a log analysis tool that leverages a **pluggable Large Language Model (LLM)** backend through a sophisticated **Retrieval-Augmented Generation (RAG)** pipeline. This new architecture enhances the tool's ability to understand and analyze large log files by providing the LLM with the most relevant context, while also offering the flexibility to switch between a local LLM (Ollama) and a powerful cloud-based LLM (Google Gemini).
 
 ### 1.1. Core Objectives
 
