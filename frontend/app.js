@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const logContent = document.getElementById('logContent');
     const filterInput = document.getElementById('filterInput');
     const searchInput = document.getElementById('searchInput');
+    const llmProviderSelector = document.getElementById('llmProviderSelector');
     const currentFileSpan = document.getElementById('currentFile');
     const chatInput = document.getElementById('chatInput');
     const chatSendButton = document.getElementById('chatSendButton');
@@ -165,6 +166,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    llmProviderSelector.addEventListener('change', async (event) => {
+        const selectedProvider = event.target.value;
+        try {
+            const response = await fetch(`${BACKEND_URL}/api/set_llm_provider`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ llm_provider: selectedProvider })
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || `HTTP error! status: ${response.status}`);
+            showModal('Success', data.message);
+        } catch (error) {
+            showModal('Error', `Failed to set LLM provider: ${error.message}`);
+        }
+    });
+
     // --- File Management ---
     async function loadFiles() {
         const currentDir = await getLogDirectory();
@@ -259,6 +276,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function handleChat() {
         const userQuery = chatInput.value;
+        const selectedLlmProvider = llmProviderSelector.value;
+
         if (!userQuery || !currentLogFile) {
             showModal('Warning', 'Please select a log file and enter a query.');
             return;
@@ -274,7 +293,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 response = await fetch(`${BACKEND_URL}/api/chat`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ prompt: userQuery, filename: currentLogFile })
+                    body: JSON.stringify({ 
+                        prompt: userQuery, 
+                        filename: currentLogFile,
+                        llm_provider: selectedLlmProvider 
+                    })
                 });
             } catch (networkError) {
                 throw new Error(`Network error or server unreachable: ${networkError.message}`);
@@ -309,9 +332,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (elapsedTime !== undefined) {
             timeInfo = ` <span class="text-xs text-gray-500">(${elapsedTime.toFixed(2)}s)</span>`;
         }
+
+        const escapedMessage = escapeHTML(message);
+        const formattedMessage = escapedMessage.replace(/\n/g, '<br>');
+
         messageElement.innerHTML = sender === 'You' 
-            ? `<span class="text-blue-400 font-bold">${sender}:</span> ${escapeHTML(message)}`
-            : `<span class="text-green-400 font-bold">${sender}:</span> ${escapeHTML(message)}${timeInfo}`;
+            ? `<span class="text-blue-400 font-bold">${sender}:</span> ${formattedMessage}`
+            : `<span class="text-green-400 font-bold">${sender}:</span> ${formattedMessage}${timeInfo}`;
         chatOutput.appendChild(messageElement);
         chatOutput.scrollTop = chatOutput.scrollHeight;
     }
@@ -360,7 +387,47 @@ document.addEventListener('DOMContentLoaded', () => {
         return string.replace(/[.*+?^${}()|[\\]/g, '\\$&');
     }
 
+    // --- Resizing Chat Panel ---
+    const chatPanel = document.getElementById('chatPanel');
+    const chatResizer = document.getElementById('chat-resizer');
+
+    let isResizing = false;
+
+    chatResizer.addEventListener('mousedown', (e) => {
+        isResizing = true;
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+    });
+
+    function handleMouseMove(e) {
+        if (!isResizing) return;
+        const newHeight = window.innerHeight - e.clientY;
+        if (newHeight > 100 && newHeight < window.innerHeight * 0.9) { // Min and max height
+            chatPanel.style.height = `${newHeight}px`;
+        }
+    }
+
+    function handleMouseUp() {
+        isResizing = false;
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+    }
+    
     // --- Initial Load ---
+    async function initializeLlmProvider() {
+        try {
+            const response = await fetch(`${BACKEND_URL}/api/get_llm_provider`);
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            const data = await response.json();
+            if (data.llm_provider) {
+                llmProviderSelector.value = data.llm_provider;
+            }
+        } catch (error) {
+            console.error('Failed to get initial LLM provider:', error);
+        }
+    }
+
     getLogDirectory().then(loadFiles);
+    initializeLlmProvider();
     setInterval(checkIndexingStatus, 2000);
 });

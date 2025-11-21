@@ -44,3 +44,11 @@ Thumbs.db
 
 # Temporary files from this tool
 .gemini-fc-replay.json
+
+# Environment variables
+.env
+backend/.env
+
+# Configuration files
+backend/config.json
+

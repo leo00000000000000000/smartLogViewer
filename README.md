@@ -6,8 +6,8 @@ A web-based log viewing tool that uses a local Large Language Model (LLM) for in
 
 The application is implemented with a Python/Flask backend and a simple HTML/CSS/JavaScript frontend.
 
--   **Backend**: A Flask server that serves log files from a configurable directory and acts as a proxy to an Ollama LLM service. It now uses `waitress` as a production-ready WSGI server.
--   **Frontend**: A single-page application that allows viewing logs, filtering, and interacting with the LLM. It now includes UI for setting the log directory.
+-   **Backend**: A Flask server that serves log files from a configurable directory and acts as a proxy to an Ollama LLM service. It now uses `waitress` as a production-ready WSGI server and persists user settings in `backend/config.json`.
+-   **Frontend**: A single-page application that allows viewing logs, filtering, and interacting with the LLM. It now includes a dropdown to select the LLM provider, a resizable chat panel, and persists the log directory and LLM selection.
 
 ## How to Run
 
@@ -32,33 +32,40 @@ The application is implemented with a Python/Flask backend and a simple HTML/CSS
     pip install -r backend/requirements.txt
     ```
 
-### 3. Ollama Configuration
+### 3. LLM Configuration
 
-The application is configured to use the `deepseek-r1:8b` model by default. If you want to use a different model, you need to update the `OLLAMA_MODEL_NAME` variable in `backend/log_server.py`.
+This application can be configured to use either a local LLM (via Ollama) or a cloud-based LLM (Google Gemini).
 
-### 4. Running the Application
+#### Using Google Gemini (Cloud LLM)
 
-1.  **Start the Backend Server:**
+To use Google Gemini, you need to provide your `GEMINI_API_KEY`. It is recommended to store this key in a `.env` file in the `backend` directory.
 
-    ```bash
-    source backend/.venv/bin/activate
-    python3 backend/log_server.py
+1.  **Create a `.env` file:** In the `backend` directory, create a file named `.env`.
+2.  **Add your API key:** Open the `backend/.env` file and add your Gemini API key:
     ```
+    GEMINI_API_KEY="<YOUR_GEMINI_API_KEY>"
+    # You can also set the default LLM provider here if you want it to override the UI selection on startup
+    # LLM_PROVIDER="google" 
+    ```
+    You can get a Gemini API key from the [Google AI Studio](https://aistudio.google.com/).
+    **Note:** The `.env` file is in `.gitignore` and will not be committed to your repository.
 
-    The server will start on `http://localhost:8080`.
+#### Using Ollama (Local LLM)
 
-2.  **Start the Frontend:**
+The application is configured to use the `deepseek-r1:8b` model by default. If you want to use a different model, you need to update the `OLLAMA_MODEL_NAME` variable in `backend/log_server.py`. No other configuration is needed if you are running Ollama on its default port.
 
-    Open the `frontend/index.html` file in your web browser.
+### 5. How to Use
 
-### 4. How to Use
-
-1.  In the browser, set your desired log directory path using the "Log Directory" input field and click "Set Directory".
-2.  Place your log files in the configured directory.
-3.  The available log files will be listed on the left panel.
-4.  Click on a file to view its content.
-5.  Use the "Filter logs" input to filter the log content.
-6.  Use the "Search buffer" to highlight text in the currently displayed log.
-7.  Use the chatbox to interact with the LLM:
-    -   To get a general analysis, type your question and press Enter.
+1.  **Set the log directory:** Use the "Set Log Directory" button to select the directory containing your log files. This directory will be remembered for future sessions.
+2.  **Select LLM Provider:** Choose your desired LLM (Ollama or Google) from the dropdown in the header. This selection will also be remembered.
+3.  **Explore Logs:**
+    -   Click on a file in the left panel to view its content.
+    -   Use the "Filter logs" input to narrow down the log entries.
+    -   Use the "Search buffer" to highlight text in the currently displayed log.
+4.  **Chat with the LLM:**
+    -   Use the chatbox to ask questions about the logs.
+    -   Resize the chat panel by dragging the bar at the top for a better view.
     -   To filter using natural language, use the format `filter for: <your description>`. For example: `filter for: all errors`.
+5.  **Running the Application**
+    -   Start the backend server by running `python backend/log_server.py`.
+    -   Open the `frontend/index.html` file in your browser.

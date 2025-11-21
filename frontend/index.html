@@ -16,6 +16,10 @@
             <div class="flex items-center space-x-4">
                 <input type="text" id="filterInput" placeholder="Filter logs..." class="bg-gray-700 text-white rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <input type="text" id="searchInput" placeholder="Search buffer..." class="bg-gray-700 text-white rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <select id="llmProviderSelector" class="bg-gray-700 text-white rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="ollama">Ollama (Local)</option>
+                    <option value="google">Google (Cloud)</option>
+                </select>
             </div>
         </header>
 
@@ -53,7 +57,8 @@
         </div>
 
         <!-- Chat/Analysis Panel -->
-        <div id="chatPanel" class="bg-gray-800 p-4 h-64 flex flex-col">
+        <div id="chatPanel" class="bg-gray-800 p-4 h-64 flex flex-col relative">
+            <div id="chat-resizer" class="absolute top-0 left-0 w-full h-2 cursor-row-resize bg-gray-600 hover:bg-gray-500"></div>
             <div id="chatOutput" class="flex-1 overflow-y-auto mb-4 p-2 bg-gray-700 rounded">
                 <!-- Chat messages will appear here -->
             </div>

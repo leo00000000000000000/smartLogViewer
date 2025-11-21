@@ -5,3 +5,5 @@ waitress
 chromadb
 sentence-transformers
 watchdog
+google-generativeai
+python-dotenv

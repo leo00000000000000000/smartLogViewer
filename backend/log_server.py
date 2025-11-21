@@ -2,6 +2,7 @@
 import os
 import threading
 import time
+import json
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 import requests
@@ -10,11 +11,37 @@ import chromadb
 from sentence_transformers import SentenceTransformer
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
+import google.generativeai as genai
+from dotenv import load_dotenv
+
+load_dotenv() # Load environment variables from .env file
+
+CONFIG_FILE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'config.json')
+
+def load_config():
+    """Loads configuration from config.json."""
+    try:
+        if os.path.exists(CONFIG_FILE_PATH):
+            with open(CONFIG_FILE_PATH, 'r') as f:
+                return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        pass # Return default config if file not found or invalid JSON
+    return {} # Default empty config
+
+def save_config(config):
+    """Saves configuration to config.json."""
+    with open(CONFIG_FILE_PATH, 'w') as f:
+        json.dump(config, f, indent=4)
 
 # --- Configuration ---
+config = load_config()
+LLM_PROVIDER = os.environ.get("LLM_PROVIDER", config.get("llm_provider", "ollama"))  # "ollama" or "google"
 OLLAMA_API_URL = "http://localhost:11434/api/generate"
 OLLAMA_MODEL_NAME = "deepseek-r1:8b"
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+GEMINI_MODEL_NAME = "models/gemini-flash-latest"
 current_log_dir = None
+
 
 # --- RAG Components ---
 chroma_client = None
@@ -110,10 +137,17 @@ def serve_static(path):
 def get_log_directory():
     """Returns the currently configured log directory."""
     global current_log_dir
+    config = load_config()
+    current_log_dir = config.get('log_dir')
+    
     if current_log_dir is None:
         current_log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logs')
         if not os.path.exists(current_log_dir):
             os.makedirs(current_log_dir, exist_ok=True)
+            # Save the default log directory to config
+            config['log_dir'] = current_log_dir
+            save_config(config)
+            
     return jsonify({"log_dir": current_log_dir})
 
 @app.route('/api/log_dir', methods=['POST'])
@@ -132,6 +166,11 @@ def set_log_directory():
         return jsonify({"error": "Provided path is not a directory."}), 400
 
     current_log_dir = new_log_dir
+
+    # Save the new directory to the config file
+    config = load_config()
+    config['log_dir'] = current_log_dir
+    save_config(config)
     
     # Start the indexing process in the background
     def index_all_files():
@@ -152,16 +191,43 @@ def set_log_directory():
 
     return jsonify({"message": f"Log directory set to {current_log_dir}. Indexing started in the background."})
 
+@app.route('/api/get_llm_provider', methods=['GET'])
+def get_llm_provider():
+    config = load_config()
+    return jsonify({"llm_provider": config.get("llm_provider", "ollama")})
+
+@app.route('/api/set_llm_provider', methods=['POST'])
+def set_llm_provider():
+    data = request.json
+    provider = data.get('llm_provider')
+    if not provider:
+        return jsonify({"error": "LLM provider is required."}), 400
+    
+    config = load_config()
+    config['llm_provider'] = provider
+    save_config(config)
+    return jsonify({"message": f"LLM provider set to {provider}."})
+
 @app.route('/api/indexing_status')
+
 def get_indexing_status():
+
     """Returns the current status of the file indexing process."""
+
     return jsonify(indexing_status)
 
+
+
 @app.route('/api/browse')
+
 def browse_files():
+
     """Browses files and directories at a given path."""
+
     path = request.args.get('path')
+
     if not path:
+
         path = os.path.expanduser('~')
     
     if not os.path.exists(path) or not os.path.isdir(path):
@@ -223,20 +289,26 @@ def get_logs_and_filter():
 @app.route('/api/chat', methods=['POST'])
 def chat_with_rag():
     """Handles chat requests using the RAG pipeline."""
-    data = request.json
-    user_query = data.get('prompt')
-    filename = data.get('filename') # We need the filename to query the correct collection
-
-    if not user_query or not filename:
-        return jsonify({"error": "Prompt and filename are required."}, 400)
-
     try:
+        data = request.json
+        print(f"Received /api/chat request: {data}")
+
+        user_query = data.get('prompt')
+        filename = data.get('filename') # We need the filename to query the correct collection
+        llm_provider = data.get('llm_provider', LLM_PROVIDER) # New: Get provider from request, fallback to env
+
+        if not user_query or not filename:
+            return jsonify({"error": "Prompt and filename are required."}, 400)
+
         # Embed the user's query
         query_embedding = embedding_model.encode([user_query])[0].tolist()
 
         # Query the vector store for relevant log chunks
         collection_name = "".join(c for c in filename if c.isalnum() or c in ('_', '-'))
-        collection = chroma_client.get_collection(name=collection_name)
+        try:
+            collection = chroma_client.get_collection(name=collection_name)
+        except ValueError:
+            return jsonify({"error": f"The log file '{filename}' has not been indexed yet. Please wait for indexing to complete or check if the file is in the correct log directory."}), 400
         
         results = collection.query(
             query_embeddings=[query_embedding],
@@ -249,28 +321,85 @@ def chat_with_rag():
         context = "\n".join(retrieved_chunks)
         augmented_prompt = f"User Query: {user_query}\n\nRelevant Log Entries:\n---\n{context}"
 
-        # Send the augmented prompt to the LLM
-        ollama_payload = {
-            "model": OLLAMA_MODEL_NAME,
-            "prompt": augmented_prompt,
-            "system": "You are a log analysis expert. Analyze the user's query based on the provided log entries and give a concise, helpful answer.",
-            "stream": False
-        }
-        
-        print(f"Sending request to Ollama at {OLLAMA_API_URL} with payload: {ollama_payload}")
-        response = requests.post(OLLAMA_API_URL, json=ollama_payload)
-        response.raise_for_status()
-        ollama_response = response.json()
-        print(f"Received response from Ollama: {ollama_response}")
-        print(f"Ollama raw response: {ollama_response}") # Debug print
-        response_data = {"text": ollama_response.get('response', 'No response text found.')}
-        print("Returning JSON:", response_data)
-        return jsonify(response_data)
+        if llm_provider == "google":
+            try:
+                print("Using Google Gemini provider")
+                if not GEMINI_API_KEY:
+                    print("GEMINI_API_KEY not found")
+                    return jsonify({"error": "GEMINI_API_KEY environment variable not set."}), 500
+                
+                genai.configure(api_key=GEMINI_API_KEY)
+                model = genai.GenerativeModel(GEMINI_MODEL_NAME)
+                
+                print("Sending request to Gemini API...")
+                response = model.generate_content(augmented_prompt)
+                print(f"Gemini response object: {response}")
+
+                if response.candidates:
+                    first_candidate = response.candidates[0]
+                    if first_candidate.content and first_candidate.content.parts:
+                        text_response = "".join(part.text for part in first_candidate.content.parts)
+                        if text_response:
+                            print(f"Extracted text: {text_response}")
+                            response_data = {"text": text_response}
+                            return jsonify(response_data)
+
+                # If we reach here, something went wrong.
+                print("No valid text response found in Gemini response.")
+                error_message = "Empty response from Gemini."
+                if response.prompt_feedback:
+                    error_message += f" Prompt feedback: {response.prompt_feedback}"
+                return jsonify({"error": error_message}), 500
+
+            except Exception as e:
+                print(f"Error calling Gemini API: {e}")
+                return jsonify({"error": f"Failed to get response from Gemini: {e}"}), 500
+        else: # Default to ollama
+            # Send the augmented prompt to the LLM
+            ollama_payload = {
+                "model": OLLAMA_MODEL_NAME,
+                "prompt": augmented_prompt,
+                "system": "You are a log analysis expert. Analyze the user's query based on the provided log entries and give a concise, helpful answer.",
+                "stream": False
+            }
+            
+            print(f"Sending request to Ollama at {OLLAMA_API_URL} with payload: {ollama_payload}")
+            response = requests.post(OLLAMA_API_URL, json=ollama_payload)
+            response.raise_for_status()
+            ollama_response = response.json()
+            print(f"Received response from Ollama: {ollama_response}")
+            print(f"Ollama raw response: {ollama_response}") # Debug print
+            response_data = {"text": ollama_response.get('response', 'No response text found.')}
+            print("Returning JSON:", response_data)
+            return jsonify(response_data)
 
     except Exception as e:
+        print(f"RAG chat failed: {e}")
         return jsonify({"error": f"RAG chat failed: {e}"}, 500)
 
 if __name__ == '__main__':
     initialize_rag()
+    
+    # --- Auto-start indexing if log directory is configured ---
+    config = load_config()
+    current_log_dir = config.get('log_dir')
+    if current_log_dir and os.path.isdir(current_log_dir):
+        print(f"Log directory '{current_log_dir}' found in config. Starting background services.")
+        
+        def index_all_files():
+            global indexing_status
+            files_to_process = [f for f in os.listdir(current_log_dir) if os.path.isfile(os.path.join(current_log_dir, f))]
+            indexing_status = {"status": "indexing", "files_processed": 0, "total_files": len(files_to_process), "current_file": ""}
+            for filename in files_to_process:
+                filepath = os.path.join(current_log_dir, filename)
+                index_log_file(filepath)
+                indexing_status["files_processed"] += 1
+            indexing_status["status"] = "idle"
+            print("Finished indexing all files.")
+
+        threading.Thread(target=index_all_files, daemon=True).start()
+        threading.Thread(target=start_file_watcher, args=(current_log_dir,), daemon=True).start()
+    # --- End Auto-start ---
+
     print("Starting server on http://localhost:8080")
     serve(app, host='0.0.0.0', port=8080)
